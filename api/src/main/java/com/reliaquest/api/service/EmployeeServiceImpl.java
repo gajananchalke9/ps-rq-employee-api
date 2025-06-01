@@ -1,16 +1,17 @@
 package com.reliaquest.api.service;
 
 import com.reliaquest.api.dto.*;
+import com.reliaquest.api.exception.RateLimitExceededException;
 import com.reliaquest.api.model.Employee;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
-import reactor.util.retry.Retry;
 
-import java.time.Duration;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
@@ -18,6 +19,8 @@ import java.util.stream.Collectors;
 
 @Service
 public class EmployeeServiceImpl implements EmployeeService {
+
+    private static final Logger logger = LoggerFactory.getLogger(EmployeeServiceImpl.class);
 
     private final WebClient employeeWebClient;
 
@@ -27,98 +30,191 @@ public class EmployeeServiceImpl implements EmployeeService {
 
     @Override
     public List<Employee> getAllEmployees() {
-        Mono<ResponseWrapperList<ExternalEmployeeDto>> employeeMono = this.employeeWebClient
-                .get()
-                .uri("")
-                .accept(MediaType.APPLICATION_JSON)
-                .retrieve()
-                .bodyToMono(new ParameterizedTypeReference<>() {});
+        logger.info("Entering getAllEmployees()");
+        try {
 
-        List<ExternalEmployeeDto> externalEmployeeList = employeeMono
-                .blockOptional()
-                .map(ResponseWrapperList::data)
-                .orElse(List.of());
+            Mono<ResponseWrapperList<ExternalEmployeeDto>> employeeMono = this.employeeWebClient
+                    .get()
+                    .uri("")
+                    .accept(MediaType.APPLICATION_JSON)
+                    .retrieve()
+                    .bodyToMono(new ParameterizedTypeReference<>() {
+                    });
 
-        return externalEmployeeList.stream()
-                .map(this::mapToInternal)
-                .collect(Collectors.toList());
+            List<ExternalEmployeeDto> externalEmployeeList = employeeMono
+                    .blockOptional()
+                    .map(ResponseWrapperList::data)
+                    .orElse(List.of());
+            logger.info("Fetched {} employees from external service", externalEmployeeList.size());
+
+            return externalEmployeeList.stream()
+                    .map(this::mapToInternal)
+                    .collect(Collectors.toList());
+        } catch (RateLimitExceededException ex) {
+            logger.error("Rate limit exceeded on getAllEmployees()", ex);
+            throw ex;
+        } catch (Exception ex) {
+            logger.error("Unexpected error in getAllEmployees()", ex);
+            throw ex;
+        }
+
     }
 
     @Override
     public List<Employee> getEmployeesByNameSearch(String searchString) {
-        String lowerCaseSearchString = searchString.toLowerCase();
+        logger.info("Entering getEmployeesByNameSearch() with searchString='{}'", searchString);
+        try {
+            String lowerCaseSearchString = searchString.toLowerCase();
 
-        return getAllEmployees().stream()
-                .filter(employee -> employee.name().toLowerCase().equals(lowerCaseSearchString))
-                .collect(Collectors.toList());
+            return getAllEmployees().stream()
+                    .filter(employee -> employee.name().toLowerCase().equals(lowerCaseSearchString))
+                    .collect(Collectors.toList());
+        } catch (RateLimitExceededException ex) {
+            logger.error("Rate limit exceeded in getEmployeesByNameSearch()", ex);
+            throw ex;
+        } catch (Exception ex) {
+            logger.error("Unexpected error in getEmployeesByNameSearch()", ex);
+            throw ex;
+        }
     }
 
     @Override
     public Optional<Employee> getEmployeeById(String id) {
-        Mono<ResponseWrapperSingle<ExternalEmployeeDto>> responseMono = employeeWebClient
-                .get()
-                .uri("/{id}", id)
-                .accept(MediaType.APPLICATION_JSON)
-                .retrieve()
-                .bodyToMono(new ParameterizedTypeReference<>() {});
+        logger.info("Entering getEmployeeById() with id='{}'", id);
+        try {
+            Mono<ResponseWrapperSingle<ExternalEmployeeDto>> responseMono = employeeWebClient
+                    .get()
+                    .uri("/{id}", id)
+                    .accept(MediaType.APPLICATION_JSON)
+                    .retrieve()
+                    .bodyToMono(new ParameterizedTypeReference<>() {
+                    });
 
-        return responseMono
-                .blockOptional()
-                .map(ResponseWrapperSingle::data)
-                .map(this::mapToInternal);
+            Optional<Employee> result = responseMono
+                    .blockOptional()
+                    .map(ResponseWrapperSingle::data)
+                    .map(this::mapToInternal);
+            logger.info("Fetched {} employee from external service", result);
+            if (result.isPresent()) {
+                logger.info("Employee found for id='{}'", id);
+            } else {
+                logger.info("No employee found for id='{}'", id);
+            }
+            return result;
+        } catch (RateLimitExceededException ex) {
+            logger.error("Rate limit exceeded in getEmployeeById('{}')", id, ex);
+            throw ex;
+        } catch (Exception ex) {
+            logger.error("Unexpected error in getEmployeeById('{}')", id, ex);
+            throw ex;
+        }
     }
 
     @Override
     public int getHighestSalaryOfEmployees() {
-        return getAllEmployees().stream()
-                .map(Employee::salary)
-                .max(Comparator.naturalOrder())
-                .orElse(0);
+        logger.info("Entering getHighestSalaryOfEmployees()");
+        try {
+
+            return getAllEmployees().stream()
+                    .map(Employee::salary)
+                    .max(Comparator.naturalOrder())
+                    .orElse(0);
+        } catch (RateLimitExceededException ex) {
+            logger.error("Rate limit exceeded in getHighestSalaryOfEmployees()", ex);
+            throw ex;
+        } catch (Exception ex) {
+            logger.error("Unexpected error in getHighestSalaryOfEmployees()", ex);
+            throw ex;
+        }
     }
 
     @Override
     public List<String> getTopTenHighestEarningEmployeeNames() {
-        return getAllEmployees().stream()
-                .sorted(Comparator.comparingInt(Employee::salary).reversed())
-                .limit(10)
-                .map(Employee::name)
-                .collect(Collectors.toList());
+        logger.info("Entering getTopTenHighestEarningEmployeeNames()");
+        try {
+
+            return getAllEmployees().stream()
+                    .sorted(Comparator.comparingInt(Employee::salary).reversed())
+                    .limit(10)
+                    .map(Employee::name)
+                    .collect(Collectors.toList());
+        } catch (RateLimitExceededException ex) {
+            logger.error("Rate limit exceeded in getTopTenHighestEarningEmployeeNames()", ex);
+            throw ex;
+        } catch (Exception ex) {
+            logger.error("Unexpected error in getTopTenHighestEarningEmployeeNames()", ex);
+            throw ex;
+        }
     }
 
     @Override
     public Optional<Employee> createEmployee(CreateEmployeeRequest request) {
-        Mono<ResponseWrapperSingle<ExternalEmployeeDto>> responseMono = employeeWebClient
-                .post()
-                .uri("")
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(Mono.just(request), CreateEmployeeRequest.class)
-                .retrieve()
-                .bodyToMono(new ParameterizedTypeReference<>() {});
+        logger.info("Entering createEmployee() with request: name='{}', salary={}, age={}, title='{}'",
+                request.name(), request.salary(), request.age(), request.title());
+        try {
 
-        return responseMono
-                .blockOptional()
-                .map(ResponseWrapperSingle::data)
-                .map(this::mapToInternal);
+            Mono<ResponseWrapperSingle<ExternalEmployeeDto>> responseMono = employeeWebClient
+                    .post()
+                    .uri("")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(Mono.just(request), CreateEmployeeRequest.class)
+                    .retrieve()
+                    .bodyToMono(new ParameterizedTypeReference<>() {
+                    });
+
+            Optional<Employee> newEmployeeEntry = responseMono
+                    .blockOptional()
+                    .map(ResponseWrapperSingle::data)
+                    .map(this::mapToInternal);
+
+            if (newEmployeeEntry.isEmpty()) {
+                logger.warn("createEmployee() returned no data");
+            }
+            return newEmployeeEntry;
+        } catch (RateLimitExceededException ex) {
+            logger.error("Rate limit exceeded in createEmployee('{}')", request.name(), ex);
+            throw ex;
+        } catch (Exception ex) {
+            logger.error("Unexpected error in createEmployee('{}')", request.name(), ex);
+            throw ex;
+        }
     }
 
     @Override
     public boolean deleteEmployeeById(String idOrName) {
-        DeleteEmployeeRequest deleteEmployeeRequest = new DeleteEmployeeRequest(idOrName);
-        Mono<ResponseWrapperSingle<Boolean>> responseMono = employeeWebClient
-                .method(HttpMethod.DELETE)
-                .uri("")
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(Mono.just(deleteEmployeeRequest), DeleteEmployeeRequest.class)
-                .retrieve()
-                .bodyToMono(new ParameterizedTypeReference<>() {});
+        logger.info("Entering deleteEmployeeById() with name='{}'", idOrName);
+        try {
+            DeleteEmployeeRequest deleteEmployeeRequest = new DeleteEmployeeRequest(idOrName);
+            Mono<ResponseWrapperSingle<Boolean>> responseMono = employeeWebClient
+                    .method(HttpMethod.DELETE)
+                    .uri("")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(Mono.just(deleteEmployeeRequest), DeleteEmployeeRequest.class)
+                    .retrieve()
+                    .bodyToMono(new ParameterizedTypeReference<>() {
+                    });
 
-        return responseMono
-                .blockOptional()
-                .map(ResponseWrapperSingle::data)
-                .orElse(false);
+            boolean deleted = responseMono
+                    .blockOptional()
+                    .map(ResponseWrapperSingle::data)
+                    .orElse(false);
+            if (deleted) {
+                logger.info("Successfully deleted employee with name='{}'", idOrName);
+            } else {
+                logger.info("Employee with name='{}' not found or could not be deleted", idOrName);
+            }
+            return deleted;
+        } catch (RateLimitExceededException ex) {
+            logger.error("Rate limit exceeded in deleteEmployeeById('{}')", idOrName, ex);
+            throw ex;
+        } catch (Exception ex) {
+            logger.error("Unexpected error in deleteEmployeeById('{}')", idOrName, ex);
+            throw ex;
+        }
     }
 
     private Employee mapToInternal(ExternalEmployeeDto dto) {
+        logger.debug("Mapping ExternalEmployeeDto(id='{}') → Employee", dto.id());
         return new Employee(
                 dto.id(),
                 dto.employeeName(),
