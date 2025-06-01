@@ -87,7 +87,12 @@ public class EmployeeController implements IEmployeeController<Employee, CreateE
                 });
     }
 
-
+    // Note:
+    // If there are multiple employees, then
+    // there is no guarantee that the data of provided ID will get deleted
+    // Mock application doesn't provide the delete by ID API,
+    // So we are searching the customer and deleting by name
+    // And the delete API provide by Mock Application deletes the 1st found employee by name
     @Override
     public ResponseEntity<String> deleteEmployeeById(String id) {
         logger.info("DELETE employees/{} called", id);
