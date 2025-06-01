@@ -374,9 +374,9 @@ public class EmployeeServiceImplTest {
         assertThrows(RuntimeException.class, () -> employeeService.createEmployee(request));
     }
 
-    // Tests for deleteEmployeeById()
+    // Tests for deleteEmployeeByName()
     @Test
-    public void testDeleteEmployeeById_dataTrue() {
+    public void testDeleteEmployeeByName_dataTrue() {
         String name = "jayesh";
         DeleteEmployeeRequest deleteDto = new DeleteEmployeeRequest(name);
         ResponseWrapperSingle<Boolean> wrapper =
@@ -384,12 +384,12 @@ public class EmployeeServiceImplTest {
 
         stubDeleteEmployeeResponse(Mono.just(wrapper));
 
-        boolean deleted = employeeService.deleteEmployeeById(name);
+        boolean deleted = employeeService.deleteEmployeeByName(name);
         assertTrue(deleted);
     }
 
     @Test
-    public void testDeleteEmployeeById_dataFalse() {
+    public void testDeleteEmployeeByName_dataFalse() {
         String name = "jayesh";
         DeleteEmployeeRequest deleteDto = new DeleteEmployeeRequest(name);
         ResponseWrapperSingle<Boolean> wrapper =
@@ -397,28 +397,28 @@ public class EmployeeServiceImplTest {
 
         stubDeleteEmployeeResponse(Mono.just(wrapper));
 
-        boolean deleted = employeeService.deleteEmployeeById(name);
+        boolean deleted = employeeService.deleteEmployeeByName(name);
         assertFalse(deleted);
     }
 
     @Test
-    public void testDeleteEmployeeById_rateLimit() {
+    public void testDeleteEmployeeByName_rateLimit() {
         String name = "jayesh";
         DeleteEmployeeRequest deleteDto = new DeleteEmployeeRequest(name);
 
         stubDeleteEmployeeResponse(Mono.error(new RateLimitExceededException("429")));
 
-        assertThrows(RateLimitExceededException.class, () -> employeeService.deleteEmployeeById(name));
+        assertThrows(RateLimitExceededException.class, () -> employeeService.deleteEmployeeByName(name));
     }
 
     @Test
-    public void testDeleteEmployeeById_networkError() {
+    public void testDeleteEmployeeByName_networkError() {
         String name = "jayesh";
         DeleteEmployeeRequest deleteDto = new DeleteEmployeeRequest(name);
 
         stubDeleteEmployeeResponse(Mono.error(new RuntimeException("fail")));
 
-        assertThrows(RuntimeException.class, () -> employeeService.deleteEmployeeById(name));
+        assertThrows(RuntimeException.class, () -> employeeService.deleteEmployeeByName(name));
     }
 
     private void stubGetEmployeeResponse(Mono<ResponseWrapperList<ExternalEmployeeDto>> wrapper) {

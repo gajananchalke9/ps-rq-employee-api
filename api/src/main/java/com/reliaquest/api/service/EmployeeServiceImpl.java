@@ -181,10 +181,10 @@ public class EmployeeServiceImpl implements EmployeeService {
     }
 
     @Override
-    public boolean deleteEmployeeById(String idOrName) {
-        logger.info("Entering deleteEmployeeById() with name='{}'", idOrName);
+    public boolean deleteEmployeeByName(String name) {
+        logger.info("Entering deleteEmployeeByName() with name='{}'", name);
         try {
-            DeleteEmployeeRequest deleteEmployeeRequest = new DeleteEmployeeRequest(idOrName);
+            DeleteEmployeeRequest deleteEmployeeRequest = new DeleteEmployeeRequest(name);
             Mono<ResponseWrapperSingle<Boolean>> responseMono = employeeWebClient
                     .method(HttpMethod.DELETE)
                     .uri("")
@@ -199,16 +199,16 @@ public class EmployeeServiceImpl implements EmployeeService {
                     .map(ResponseWrapperSingle::data)
                     .orElse(false);
             if (deleted) {
-                logger.info("Successfully deleted employee with name='{}'", idOrName);
+                logger.info("Successfully deleted employee with name='{}'", name);
             } else {
-                logger.info("Employee with name='{}' not found or could not be deleted", idOrName);
+                logger.info("Employee with id='{}' not found or could not be deleted", name);
             }
             return deleted;
         } catch (RateLimitExceededException ex) {
-            logger.error("Rate limit exceeded in deleteEmployeeById('{}')", idOrName, ex);
+            logger.error("Rate limit exceeded in deleteEmployeeByName('{}')", name, ex);
             throw ex;
         } catch (Exception ex) {
-            logger.error("Unexpected error in deleteEmployeeById('{}')", idOrName, ex);
+            logger.error("Unexpected error in deleteEmployeeByName('{}')", name, ex);
             throw ex;
         }
     }

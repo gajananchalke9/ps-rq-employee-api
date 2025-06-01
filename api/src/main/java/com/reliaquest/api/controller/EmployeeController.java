@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/employees")
@@ -90,13 +91,19 @@ public class EmployeeController implements IEmployeeController<Employee, CreateE
     @Override
     public ResponseEntity<String> deleteEmployeeById(String id) {
         logger.info("DELETE employees/{} called", id);
-        boolean deleted = employeeService.deleteEmployeeById(id);
-        if (deleted) {
-            logger.info("Employee with id='{}' deleted successfully", id);
-            return ResponseEntity.ok("Employee deleted successfully");
-        } else {
-            logger.info("Employee with id='{}' not found or could not be deleted", id);
-            return ResponseEntity.status(404).body("Employee not found or could not be deleted");
+        Optional<Employee> employee = employeeService.getEmployeeById(id);
+        if (employee.isPresent()) {
+            boolean deleted = employeeService.deleteEmployeeByName(employee.get().name());
+            if (deleted) {
+                logger.info("Employee with id='{}' deleted successfully", id);
+                return ResponseEntity.ok("Employee deleted successfully");
+            } else {
+                logger.info("Employee with id='{}' not found or could not be deleted", id);
+                return ResponseEntity.status(404).body("Employee not found or could not be deleted");
+            }
+        } else{
+            logger.info("Employee not found with id='{}'", id);
+            return ResponseEntity.status(404).body("Employee not found");
         }
     }
 }

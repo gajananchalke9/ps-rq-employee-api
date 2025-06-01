@@ -16,4 +16,12 @@ public class GlobalExceptionHandler {
         logger.error("Handling RateLimitExceededException: {}", ex.getMessage());
         return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(ex.getMessage());
     }
+
+    @ExceptionHandler(RuntimeException.class)
+    public ResponseEntity<String> handleAllRuntimeExceptions(RuntimeException ex) {
+        logger.error("Unhandled exception in controller: ", ex);
+        return ResponseEntity
+                .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(ex.getMessage());
+    }
 }

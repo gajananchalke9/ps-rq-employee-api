@@ -19,5 +19,5 @@ public interface EmployeeService {
 
     Optional<Employee> createEmployee(CreateEmployeeRequest request);
 
-    boolean deleteEmployeeById(String idOrName);
+    boolean deleteEmployeeByName(String name);
 }
