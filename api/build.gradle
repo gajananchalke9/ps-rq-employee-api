@@ -4,6 +4,8 @@ plugins {
 
 dependencies {
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    implementation 'org.springframework.boot:spring-boot-starter-webflux'
+    implementation 'jakarta.validation:jakarta.validation-api:3.0.2'
 }
 
 springBoot {
